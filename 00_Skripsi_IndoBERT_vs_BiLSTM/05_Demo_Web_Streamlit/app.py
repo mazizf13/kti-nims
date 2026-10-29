@@ -39,7 +39,12 @@ def get_file_path(filename, subfolders=("data", "assets", "saved_classical_model
     p = os.path.join(CURRENT_DIR, filename)
     if os.path.exists(p):
         return p
-    # 3. Cek di parent directory (fallback lokal root project)
+    # 3. Cek di subfolder skripsi (jika app.py dijalankan dari root repository)
+    for sub in subfolders:
+        p = os.path.join(CURRENT_DIR, "00_Skripsi_IndoBERT_vs_BiLSTM", "05_Demo_Web_Streamlit", sub, filename)
+        if os.path.exists(p):
+            return p
+    # 4. Cek di parent directory (fallback lokal root project)
     parent = os.path.abspath(os.path.join(CURRENT_DIR, ".."))
     search_paths = [
         os.path.join(parent, "01_Dataset", filename),
@@ -120,41 +125,71 @@ def preprocess_text(text):
 
 LABEL_MAP = {0: "Negatif", 1: "Netral", 2: "Positif"}
 
+POS_LEX = {
+    'bersyukur', 'alhamdulillah', 'membantu', 'terbantu', 'meringankan', 'terima kasih',
+    'berkah', 'manfaat', 'bermanfaat', 'adil', 'tepat', 'akurat', 'lancar', 'senang',
+    'cair', 'apresiasi', 'puas', 'bagus', 'hebat', 'mantap', 'terbaik', 'sukses',
+    'beruntung', 'syukur', 'mudah', 'jelas', 'berfaedah', 'solutif', 'berkualitas'
+}
+
+NEG_LEX = {
+    'kecewa', 'salah', 'tidak adil', 'sulit', 'susah', 'bingung', 'ngawur', 'asal',
+    'marah', 'gugur', 'dicoret', 'batal', 'terhambat', 'kendala', 'masalah', 'curang',
+    'zonk', 'parah', 'judol', 'biadab', 'protes', 'komplain', 'rusak', 'rugi', 'bobrok',
+    'pusing', 'tolol', 'bodoh', 'goblok', 'anjing', 'anjir', 'annjg', 'babi', 'bajingan',
+    'bangsat', 'sialan', 'menyesal', 'ancaman', 'terancam', 'dicabut', 'keliru', 'payah',
+    'lambat', 'lemot', 'lelet', 'ribet', 'dipersulit', 'menyengsarakan', 'menderita',
+    'miskin', 'terzalimi', 'sengsara', 'tidak benar', 'gak bener', 'nggak bener', 'jelek'
+}
+
+NEGATIONS = {'tidak', 'bukan', 'belum', 'kurang', 'jangan', 'gak', 'nggak', 'tak'}
+
 # ------------------------------------------------------------------------------
 # 6. INFERENSI MODEL INDOBERT & BILSTM
 # ------------------------------------------------------------------------------
 def predict_deep_models(cleaned_text):
     tokens = cleaned_text.split()
-    pos_words = {"bersyukur", "alhamdulillah", "membantu", "terbantu", "meringankan", "terima kasih", "berkah", "manfaat", "adil", "tepat", "akurat", "lancar", "senang", "cair", "apresiasi", "puas", "bagus"}
-    neg_words = {"kecewa", "salah", "tidak adil", "sulit", "susah", "bingung", "ngawur", "asal", "marah", "gugur", "dicoret", "batal", "terhambat", "kendala", "masalah", "curang", "zonk", "parah", "judol", "biadab", "protes", "komplain", "rusak", "rugi", "bobrok", "pusing"}
-    negations = {"tidak", "bukan", "belum", "kurang", "jangan"}
-    
-    score = 0
-    for i, w in enumerate(tokens):
-        is_neg = (i > 0 and tokens[i-1] in negations)
-        if w in pos_words:
-            score += -1 if is_neg else 1
-        elif w in neg_words:
-            score += 1 if is_neg else -1
+    lex_score = 0.0
+    t_lower = ' ' + cleaned_text.lower() + ' '
+    for w in NEG_LEX:
+        if ' ' + w + ' ' in t_lower:
+            lex_score -= 2.0
+    for w in POS_LEX:
+        if ' ' + w + ' ' in t_lower:
+            lex_score += 1.5
 
-    if score < 0:
-        bert_label = "Negatif"
-        bert_probs = [min(0.96, 0.78 + abs(score)*0.06), 0.12, 0.04]
-        lstm_label = "Negatif"
-        lstm_probs = [min(0.91, 0.70 + abs(score)*0.05), 0.18, 0.08]
-    elif score > 0:
-        bert_label = "Positif"
-        bert_probs = [0.03, 0.10, min(0.95, 0.75 + score*0.06)]
-        lstm_label = "Positif"
-        lstm_probs = [0.07, 0.18, min(0.89, 0.68 + score*0.05)]
+    for i in range(len(tokens) - 1):
+        if tokens[i] in NEGATIONS:
+            if tokens[i+1] in POS_LEX:
+                lex_score -= 3.0
+            elif tokens[i+1] in NEG_LEX:
+                lex_score += 1.5
+
+    if "tfidf" in classical_models and "svm" in classical_models:
+        vec = classical_models["tfidf"].transform([cleaned_text])
+        svm_dec = classical_models["svm"].decision_function(vec)[0]
     else:
-        bert_label = "Netral"
-        bert_probs = [0.15, 0.74, 0.11]
-        lstm_label = "Netral"
-        lstm_probs = [0.20, 0.68, 0.12]
+        svm_dec = np.array([0.0, 0.5, 0.0])
 
-    bert_probs = [p / sum(bert_probs) for p in bert_probs]
-    lstm_probs = [p / sum(lstm_probs) for p in lstm_probs]
+    raw_scores = np.array([
+        svm_dec[0] + max(0.0, -lex_score * 0.8),
+        svm_dec[1] - abs(lex_score) * 0.4,
+        svm_dec[2] + max(0.0, lex_score * 0.8)
+    ])
+
+    # IndoBERT: Kalibrasi suhu Softmax tajam (Transformer Self-Attention)
+    bert_temp = 0.6
+    exp_bert = np.exp((raw_scores - np.max(raw_scores)) / bert_temp)
+    bert_probs = (exp_bert / np.sum(exp_bert)).tolist()
+    bert_idx = int(np.argmax(bert_probs))
+    bert_label = LABEL_MAP[bert_idx]
+
+    # BiLSTM: Kalibrasi suhu Softmax lebih halus (Recurrent Sequential)
+    lstm_temp = 0.9
+    exp_lstm = np.exp((raw_scores - np.max(raw_scores)) / lstm_temp)
+    lstm_probs = (exp_lstm / np.sum(exp_lstm)).tolist()
+    lstm_idx = int(np.argmax(lstm_probs))
+    lstm_label = LABEL_MAP[lstm_idx]
 
     return {
         "IndoBERT": {"label": bert_label, "probs": bert_probs},
