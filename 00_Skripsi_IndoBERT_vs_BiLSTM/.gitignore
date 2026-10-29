@@ -1,0 +1,29 @@
+# ==============================================================================
+# .gitignore - Folder Khusus 00_Skripsi_IndoBERT_vs_BiLSTM
+# ==============================================================================
+
+# Bobot model Transformer (> 100 MB melebihi limit GitHub)
+*.safetensors
+*.bin
+**/best_indobert_model/model.safetensors
+
+# Bobot PyTorch lokal
+*.pt
+*.pth
+**/best_bilstm_model.pt
+
+# Arsip eksperimen
+*.zip
+*.tar.gz
+hasil_eksperimen_lengkap/
+
+# Python cache & temp
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+*.log
+
+# OS & IDE
+.DS_Store
+Thumbs.db
+.vscode/

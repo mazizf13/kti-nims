@@ -1,0 +1,74 @@
+# ==============================================================================
+# .gitignore - Skripsi & Artikel IndoBERT vs BiLSTM (Analisis Sentimen Desil)
+# ==============================================================================
+
+# 1. File Bobot Model Berukuran Raksasa (> 100 MB - Ditolak GitHub)
+# GitHub memiliki batas ketat maksimal 100 MB per file.
+*.safetensors
+*.bin
+*.h5
+*.onnx
+**/best_indobert_model/model.safetensors
+**/best_indobert_model/pytorch_model.bin
+
+# 2. File Bobot PyTorch Lokal (Opsional / Ukuran Besar)
+*.pt
+*.pth
+**/best_bilstm_model.pt
+
+# 3. Arsip & Kompresi Hasil Eksperimen
+*.zip
+*.tar.gz
+*.rar
+**/hasil_eksperimen_lengkap.zip
+**/hasil_eksperimen_lengkap/
+
+# 4. Folder Lama & Eksperimen Sementara
+temp_lexicon/
+scratch/
+tmp/
+temp/
+
+# 5. Python Cache & Lingkungan Virtual
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# 6. IDE, Editor, dan Sistem Operasi
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+ehthumbs.db
+desktop.ini
+
+# 7. Log & File Kredensial Scraping
+*.log
+cookies.json
+session.json
+credentials.json
+.env

@@ -1,0 +1,7 @@
+Model,Kategori,Waktu Latih (s),Accuracy (%),Macro Precision (%),Macro Recall (%),Macro F1-Score (%)
+Naïve Bayes (Complement),Shallow Machine Learning (TF-IDF),0.0421,71.4,65.08,64.72,64.42
+"K-NN (k=5, Cosine)",Shallow Machine Learning (TF-IDF),0.0015,70.31,63.85,54.19,56.68
+Rocchio (Nearest Centroid),Shallow Machine Learning (TF-IDF),0.2404,70.96,63.82,67.51,64.46
+SVM (Linear SVC),Shallow Machine Learning (TF-IDF),0.0277,84.5,82.85,77.23,79.62
+BiLSTM (Bidirectional RNN),Deep Learning Sekuensial,40.0,86.9,83.47,80.79,81.96
+IndoBERT (Pretrained Transformer),State-of-the-Art Transformer,128.0,94.98,92.8,93.88,93.29

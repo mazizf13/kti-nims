@@ -1,0 +1,22 @@
+# ==============================================================================
+# .gitignore - Khusus Deployment Streamlit Cloud (05_Demo_Web_Streamlit)
+# ==============================================================================
+
+# Abaikan bobot model Transformer berukuran besar (> 100 MB ditolak GitHub)
+*.safetensors
+*.bin
+best_indobert_model/model.safetensors
+
+# Abaikan bobot PyTorch lokal (tidak dibutuhkan karena inferensi web memakai engine ringan)
+*.pt
+*.pth
+best_bilstm_model.pt
+
+# Python cache & temp
+__pycache__/
+*.py[cod]
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
