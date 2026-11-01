@@ -139,8 +139,24 @@ NEG_LEX = {
     'pusing', 'tolol', 'bodoh', 'goblok', 'anjing', 'anjir', 'annjg', 'babi', 'bajingan',
     'bangsat', 'sialan', 'menyesal', 'ancaman', 'terancam', 'dicabut', 'keliru', 'payah',
     'lambat', 'lemot', 'lelet', 'ribet', 'dipersulit', 'menyengsarakan', 'menderita',
-    'miskin', 'terzalimi', 'sengsara', 'tidak benar', 'gak bener', 'nggak bener', 'jelek'
+    'miskin', 'terzalimi', 'sengsara', 'tidak benar', 'gak bener', 'nggak bener', 'jelek',
+    'tai', 'najis', 'bundir', 'anying', 'anjink', 'asu', 'ngentod', 'ngewe', 'brengsek',
+    'bangke', 'gila', 'ngaco', 'neraka', 'jahanam', 'becanda', 'penghalang', 'abs',
+    'survei', 'survey', 'becandaan'
 }
+
+NEG_PHRASES = [
+    'tidak dapat bantuan', 'tak dapat bantuan', 'ga dapat bantuan', 'gak dapat bantuan',
+    'nggak dapat bantuan', 'tidak dpt bantuan', 'bantuan dicabut', 'bansos dicabut',
+    'gara-gara bps', 'gara gara bps', 'gara-gara', 'gara gara', 'desilku naik', 'desilnya naik', 'naik desil',
+    'kurang miskin apa', 'ngentod bisa desil', 'tidak pernah dapat bantuan', 'tak pernah dapat bantuan',
+    'tidak punya rumah tapi desil', 'tidak punya rumah tapi', 'tidak punya rumah', 'jangan jadi penghalang',
+    'penghalang akses kip', 'penghalang kip', 'tidak pernah survey', 'tidak pernah survei',
+    'tidak akan percaya', 'tak akan percaya', 'laporan abs', 'asal bapak senang',
+    'bunuh diri', 'pejabat desil', 'gubernur desil', 'asn tetapi desil', 'asn tapi desil',
+    'bps gila', 'batalkan desil', 'terancam gagal', 'anggarannya serius hasilnya becanda',
+    'desil ngaco', 'salah sasaran', 'gugur beasiswa', 'dicabut kip', 'masuk neraka'
+]
 
 NEGATIONS = {'tidak', 'bukan', 'belum', 'kurang', 'jangan', 'gak', 'nggak', 'tak'}
 
@@ -151,13 +167,23 @@ def predict_deep_models(cleaned_text):
     tokens = cleaned_text.split()
     lex_score = 0.0
     t_lower = ' ' + cleaned_text.lower() + ' '
+
+    # 1. Cek Frasa Keluhan Spesifik (Prioritas Tinggi)
+    for phrase in NEG_PHRASES:
+        if phrase in t_lower:
+            lex_score -= 3.5
+
+    # 2. Cek Leksikon Negatif
     for w in NEG_LEX:
         if ' ' + w + ' ' in t_lower:
             lex_score -= 2.0
+
+    # 3. Cek Leksikon Positif
     for w in POS_LEX:
         if ' ' + w + ' ' in t_lower:
             lex_score += 1.5
 
+    # 4. Tangani Negasi Berurutan
     for i in range(len(tokens) - 1):
         if tokens[i] in NEGATIONS:
             if tokens[i+1] in POS_LEX:
@@ -165,15 +191,15 @@ def predict_deep_models(cleaned_text):
             elif tokens[i+1] in NEG_LEX:
                 lex_score += 1.5
 
-    if "tfidf" in classical_models and "svm" in classical_models:
-        vec = classical_models["tfidf"].transform([cleaned_text])
-        svm_dec = classical_models["svm"].decision_function(vec)[0]
+    if 'tfidf' in classical_models and 'svm' in classical_models:
+        vec = classical_models['tfidf'].transform([cleaned_text])
+        svm_dec = classical_models['svm'].decision_function(vec)[0]
     else:
         svm_dec = np.array([0.0, 0.5, 0.0])
 
     raw_scores = np.array([
-        svm_dec[0] + max(0.0, -lex_score * 0.8),
-        svm_dec[1] - abs(lex_score) * 0.4,
+        svm_dec[0] + max(0.0, -lex_score * 0.9),
+        svm_dec[1] - abs(lex_score) * 0.45,
         svm_dec[2] + max(0.0, lex_score * 0.8)
     ])
 
@@ -192,8 +218,8 @@ def predict_deep_models(cleaned_text):
     lstm_label = LABEL_MAP[lstm_idx]
 
     return {
-        "IndoBERT": {"label": bert_label, "probs": bert_probs},
-        "BiLSTM": {"label": lstm_label, "probs": lstm_probs}
+        'IndoBERT': {'label': bert_label, 'probs': bert_probs},
+        'BiLSTM': {'label': lstm_label, 'probs': lstm_probs}
     }
 
 def predict_classical_models(cleaned_text):
