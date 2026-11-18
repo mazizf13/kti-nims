@@ -72,3 +72,11 @@ cookies.json
 session.json
 credentials.json
 .env
+/jurnal
+/artikel_stis
+arsip_skrip_dan_draf/
+terbaru/
+asli-ini/
+08_Analisis_Aspek_Kemiskinan_V2/
+~$*.xlsx
+~$*.docx
