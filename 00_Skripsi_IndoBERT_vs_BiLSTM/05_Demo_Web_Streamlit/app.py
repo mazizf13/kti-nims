@@ -397,7 +397,7 @@ with tab2:
     st.subheader("📁 Unggah File Excel / CSV untuk Batch Auto-Labeling & Evaluasi Akurasi")
     st.write("Fitur ini memungkinkan Anda mengunggah kumpulan data komentar media sosial, melakukan pelabelan otomatis sekaligus ekstraksi aspek kemiskinan, serta mengukur akurasi model jika berkas Anda memiliki label acuan (Ground Truth).")
 
-    # Download Template Button
+    # Download Template Button (Dengan Fallback Aman)
     sample_df = pd.DataFrame({
         "komentar": [
             "Alhamdulillah bansos sembako desil 1 cair tepat waktu dan sangat membantu",
@@ -409,16 +409,23 @@ with tab2:
         "label_asli": ["Positif", "Negatif", "Netral", "Negatif", "Positif"]
     })
     
-    template_buffer = io.BytesIO()
-    with pd.ExcelWriter(template_buffer, engine='openpyxl') as writer:
-        sample_df.to_excel(writer, index=False, sheet_name='Data_Komentar')
-    template_buffer.seek(0)
+    try:
+        template_buffer = io.BytesIO()
+        with pd.ExcelWriter(template_buffer, engine='openpyxl') as writer:
+            sample_df.to_excel(writer, index=False, sheet_name='Data_Komentar')
+        t_data = template_buffer.getvalue()
+        t_filename = "template_komentar_kebijakan_desil.xlsx"
+        t_mime = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    except Exception:
+        t_data = sample_df.to_csv(index=False).encode('utf-8')
+        t_filename = "template_komentar_kebijakan_desil.csv"
+        t_mime = "text/csv"
     
     st.download_button(
-        label="📥 Unduh Format Template Excel (.xlsx)",
-        data=template_buffer,
-        file_name="template_komentar_kebijakan_desil.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        label="📥 Unduh Format Template Komentar (.xlsx / .csv)",
+        data=t_data,
+        file_name=t_filename,
+        mime=t_mime
     )
 
     st.markdown("---")
@@ -573,19 +580,29 @@ with tab2:
                 styled_df = df_res.style.map(color_sentiment, subset=["Prediksi_Sentimen"])
                 st.dataframe(styled_df, use_container_width=True, height=420)
 
-                # TOMBOL DOWNLOAD EXCEL LENGKAP
-                out_buffer = io.BytesIO()
-                with pd.ExcelWriter(out_buffer, engine='openpyxl') as writer:
-                    df_res.to_excel(writer, index=False, sheet_name='Hasil_Prediksi_Desil')
-                out_buffer.seek(0)
+                # TOMBOL DOWNLOAD LENGKAP (EXCEL / CSV)
+                fn_base = uploaded_file.name.rsplit('.', 1)[0]
+                try:
+                    out_buffer = io.BytesIO()
+                    with pd.ExcelWriter(out_buffer, engine='openpyxl') as writer:
+                        df_res.to_excel(writer, index=False, sheet_name='Hasil_Prediksi_Desil')
+                    out_data = out_buffer.getvalue()
+                    out_fn = f"hasil_labeling_sentimen_{fn_base}.xlsx"
+                    out_mime = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    btn_label = "📥 Unduh Hasil Lengkap ke Excel (.xlsx)"
+                except Exception:
+                    out_data = df_res.to_csv(index=False).encode('utf-8')
+                    out_fn = f"hasil_labeling_sentimen_{fn_base}.csv"
+                    out_mime = "text/csv"
+                    btn_label = "📥 Unduh Hasil Lengkap ke CSV (.csv)"
 
                 c_dl1, c_dl2 = st.columns([2, 4])
                 with c_dl1:
                     st.download_button(
-                        label="📥 Unduh Hasil Lengkap ke Excel (.xlsx)",
-                        data=out_buffer,
-                        file_name=f"hasil_labeling_sentimen_{uploaded_file.name.rsplit('.', 1)[0]}.xlsx",
-                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        label=btn_label,
+                        data=out_data,
+                        file_name=out_fn,
+                        mime=out_mime,
                         type="primary",
                         use_container_width=True
                     )
